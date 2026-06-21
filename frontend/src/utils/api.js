@@ -1,13 +1,18 @@
 import axios from "axios";
 
+// In production, set REACT_APP_API_URL to your backend Vercel URL
+// e.g. https://your-backend.vercel.app/api
+// In development, the proxy in package.json handles /api → localhost:5000
+const baseURL = process.env.REACT_APP_API_URL || "/api";
+
 const api = axios.create({
-  baseURL: "/api",
+  baseURL,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });
 
-// Request interceptor — attach token
+// Attach token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("hcToken");
@@ -17,14 +22,15 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — only redirect on 401, not on 500
+// Handle responses
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Only clear token and redirect if not already on auth pages
       const publicPaths = ["/login", "/register", "/", "/doctors", "/symptom-checker", "/health-news", "/about"];
-      const isPublic = publicPaths.some((p) => window.location.pathname === p || window.location.pathname.startsWith("/doctors/"));
+      const isPublic = publicPaths.some(
+        (p) => window.location.pathname === p || window.location.pathname.startsWith("/doctors/")
+      );
       if (!isPublic) {
         localStorage.removeItem("hcToken");
         window.location.href = "/login";
